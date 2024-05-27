@@ -1,127 +1,55 @@
 #include <iostream>
 #include <vector>
-#include <cstring>
-#include <chrono>
-#include <fstream>
+#include <algorithm>
 
 using namespace std;
 
-const int MOD = 1000000007;
-const int N = 100005;
+int abhimanyuPower, skips, regenerates;
+int dp[12][12][12];
 
-int initialPower;
-int dp[20][201][20][20];
+int dynamicProgramming(const vector<int>& monsters, int idx, int power, int a, int b) {
+    if (idx == 11)
+        return power;
 
-bool canWinWithMemoization(int index, int currentPower, int remainingSkips, int remainingHeals, vector<int> enemies)
-{
-  if (dp[index][currentPower][remainingSkips][remainingHeals] != -1)
-    return dp[index][currentPower][remainingSkips][remainingHeals];
+    if (dp[idx][a][b] != -1)
+        return dp[idx][a][b];
 
-  if (index == enemies.size())
-  {
-    if (currentPower >= 0)
-      return true;
-    else
-      return false;
-  }
+    if (monsters[idx] > power) {
+        if (b > 0)
+            dp[idx][a][b] = max(dp[idx][a][b], dynamicProgramming(monsters, idx, abhimanyuPower, a, b - 1));
 
-  bool isPossibleToWin = false;
+        if (a > 0) {
+            if (idx == 2 || idx == 6)
+                monsters[idx + 1] += (monsters[idx] + monsters[idx] / 2);
+            dp[idx + 1][a][b] = max(dp[idx + 1][a][b], dynamicProgramming(monsters, idx + 1, power, a - 1, b));
+        }
+    } else {
+        dp[idx + 1][a][b] = max(dp[idx + 1][a][b], dynamicProgramming(monsters, idx + 1, power - monsters[idx], a, b));
+    }
 
-  if (currentPower >= enemies[index])
-    isPossibleToWin |= canWinWithMemoization(index + 1, currentPower - enemies[index], remainingSkips, remainingHeals, enemies);
-
-  if (index == 2 || index == 6)
-    enemies[index + 1] += enemies[index] / 2;
-
-  if (remainingSkips > 0)
-    isPossibleToWin = isPossibleToWin || canWinWithMemoization(index + 1, currentPower, remainingSkips - 1, remainingHeals, enemies);
-
-  if (remainingHeals > 0)
-    isPossibleToWin = isPossibleToWin || canWinWithMemoization(index, initialPower, remainingSkips, remainingHeals - 1, enemies);
-
-  return dp[index][currentPower][remainingSkips][remainingHeals] = isPossibleToWin;
+    return dp[idx][a][b];
 }
 
-bool recursivelyFight(int index, int currentPower, int remainingSkips, int remainingHeals, vector<int> enemies)
-{
-  if (currentPower < 0)
-    return false;
+int main() {
+    cin >> abhimanyuPower >> skips >> regenerates;
+    vector<int> monsters(11);
+    for (int i = 0; i < 11; ++i)
+        cin >> monsters[i];
 
-  if (index == enemies.size())
-  {
-    if (currentPower >= 0)
-      return true;
-    else
-      return false;
-  }
-  else
-  {
-    bool isPossibleToWin = false;
+    for (int i = 0; i <= 11; ++i)
+        for (int j = 0; j <= skips; ++j)
+            for (int k = 0; k <= regenerates; ++k)
+                dp[i][j][k] = -1;
 
-    isPossibleToWin = isPossibleToWin || recursivelyFight(index + 1, currentPower - enemies[index], remainingSkips, remainingHeals, enemies);
+    int result = dynamicProgramming(monsters, 0, abhimanyuPower, skips, regenerates);
 
-    if (index == 2 || index == 6)
-      enemies[index + 1] += enemies[index] / 2;
+    for (int j = 0; j <= skips; ++j)
+        for (int k = 0; k <= regenerates; ++k)
+            if (dp[11][j][k] >= 0) {
+                cout << "YES";
+                return 0;
+            }
 
-    if (remainingSkips > 0)
-      isPossibleToWin = isPossibleToWin || recursivelyFight(index + 1, currentPower, remainingSkips - 1, remainingHeals, enemies);
-
-    if (remainingHeals > 0)
-      isPossibleToWin = isPossibleToWin || recursivelyFight(index, initialPower, remainingSkips, remainingHeals - 1, enemies);
-
-    return isPossibleToWin;
-  }
-}
-
-void solve()
-{
-  memset(dp, -1, sizeof dp);
-
-  int numEnemies, initialPower, skipMoves, healMoves;
-  cin >> numEnemies >> initialPower >> skipMoves >> healMoves;
-
-  vector<int> enemies(numEnemies, 0);
-  for (int i = 0; i < numEnemies; i++)
-    cin >> enemies[i];
-
-  bool canDefeatRec = recursivelyFight(0, initialPower, skipMoves, healMoves, enemies);
-  bool canDefeat = canWinWithMemoization(0, initialPower, skipMoves, healMoves, enemies);
-
-  cout << "\nRec : ";
-  if (canDefeatRec)
-    cout << "Won";
-  else
-    cout << "Lost";
-
-  cout << " | MemoProcess : ";
-  if (canDefeat)
-    cout << "Won";
-  else
-    cout << "Lost";
-}
-
-int main()
-{
-  ios_base::sync_with_stdio(false);
-  cin.tie(NULL);
-  cout.tie(NULL);
-
-  // Take input from input.txt and output to output.txt
-  freopen("input.txt", "r", stdin);
-  freopen("output.txt", "w", stdout);
-
-  int testCases;
-  cin >> testCases;
-
-  while (testCases--)
-  {
-    auto start = chrono::high_resolution_clock::now();
-    solve();
-    auto stop = chrono::high_resolution_clock::now();
-    auto duration = chrono::duration_cast<chrono::milliseconds>(stop - start);
-
-    cout << "Time taken: " << duration.count() << " milliseconds" << endl;
-  }
-
-  return 0;
+    cout << "NO";
+    return 0;
 }
